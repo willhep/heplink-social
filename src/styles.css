@@ -6,7 +6,11 @@
 html,body,#root{height:100%}
 body{ @apply bg-black text-white font-sans; }
 
-/* Simple round cursor */
-.cursor-dot{ position:fixed; left:0; top:0; width:10px; height:10px; border:2px solid white; border-radius:9999px; pointer-events:none; transform:translate(-9999px,-9999px); z-index:50; transition: transform .06s ease; }
+/* simple round cursor */
+.cursor-dot{
+  position:fixed; left:0; top:0; width:10px; height:10px;
+  border:2px solid white; border-radius:9999px; pointer-events:none;
+  transform:translate(-9999px,-9999px); z-index:50; transition: transform .06s ease;
+}
 .cursor-dot.pointer{ width:18px; height:18px; }
 :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
