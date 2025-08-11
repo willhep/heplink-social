@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
-/* ================= Design tokens ================= */
+/* ============ Design tokens ============ */
 const T = {
   bg: "bg-black",
   surface: "bg-zinc-950",
@@ -10,39 +10,35 @@ const T = {
   border: "border-zinc-800",
   hairline: "border border-zinc-800",
   card: "bg-zinc-950",
-  soft: "bg-zinc-900",
   accent: "#ff0000",
   accentLight: "#ff6666",
 }
 
-/* ================= Utilities ================= */
+/* ============ Utilities (asset helper) ============ */
 const DEFAULT_PLACEHOLDER = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='900'>
-     <defs>
-       <linearGradient id='g' x1='0' y='0' x2='1' y2='1'>
-         <stop offset='0%' stop-color='%23ff6666'/>
-         <stop offset='100%' stop-color='%23ff0000'/>
-       </linearGradient>
-     </defs>
+     <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+       <stop offset='0%' stop-color='%23ff6666'/><stop offset='100%' stop-color='%23ff0000'/>
+     </linearGradient></defs>
      <rect fill='url(%23g)' width='100%' height='100%'/>
-     <text x='50%' y='50%' fill='white' font-family='Arial, Helvetica, sans-serif' font-size='36' text-anchor='middle'>Heplink image placeholder</text>
+     <text x='50%' y='50%' fill='white' font-family='Arial, Helvetica, sans-serif' font-size='36' text-anchor='middle'>Heplink image</text>
    </svg>`
 )}`
 
-// try multiple basenames + extensions in /public
 function useAssetUrl(bases, fallback = "") {
   const [url, setUrl] = useState(fallback)
   useEffect(() => {
     let alive = true
     ;(async () => {
       const exts = ["png", "jpg", "jpeg", "webp"]
-      for (const base of Array.isArray(bases) ? bases : [bases]) {
+      const list = (Array.isArray(bases) ? bases : [bases]).filter(Boolean)
+      for (const base of list.length ? list : ["__nope__"]) {
         for (const ext of exts) {
           const u = `/${base}.${ext}`
           try {
             const r = await fetch(u, { method: "HEAD" })
             if (r.ok && alive) { setUrl(u); return }
-          } catch { /* ignore */ }
+          } catch {}
         }
       }
     })()
@@ -51,18 +47,11 @@ function useAssetUrl(bases, fallback = "") {
   return url
 }
 
-/* tiny runtime sanity test */
-;(() => {
-  const exts = ["png","jpg","jpeg","webp"]
-  const urls = exts.map(e => `/hero-image.${e}`)
-  console.assert(urls[0].endsWith(".png") && urls[3].endsWith(".webp"), "asset candidates ok")
-})()
-
-/* ================= Motion ================= */
+/* ============ Motion ============ */
 const fade = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.6 } } }
 const HoverLift = { whileHover: { y: -2, scale: 1.02 }, transition: { type: "spring", stiffness: 300, damping: 18 } }
 
-/* ================= Helpers ================= */
+/* ============ Helpers ============ */
 const Section = ({ id, className = "", children }) => (
   <section id={id} className={`max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>{children}</section>
 )
@@ -74,9 +63,9 @@ const Magnetic = ({ children }) => {
       ref={ref}
       onMouseMove={(e) => {
         const el = ref.current; if (!el) return
-        const rect = el.getBoundingClientRect()
-        const dx = e.clientX - (rect.left + rect.width / 2)
-        const dy = e.clientY - (rect.top + rect.height / 2)
+        const r = el.getBoundingClientRect()
+        const dx = e.clientX - (r.left + r.width / 2)
+        const dy = e.clientY - (r.top + r.height / 2)
         el.style.transform = `translate(${dx * 0.06}px, ${dy * 0.06}px)`
       }}
       onMouseLeave={() => { const el = ref.current; if (el) el.style.transform = "translate(0,0)" }}
@@ -113,16 +102,13 @@ const CursorDot = () => {
   return null
 }
 
-/* ================= Buttons (center text) ================= */
+/* ============ Buttons (center text) ============ */
 const btnBase = "rounded-xl h-10 px-5 flex items-center justify-center leading-none"
 const AccentButton = ({ href, className = "", children }) => (
   <a href={href} className="inline-block">
     <Magnetic>
       <motion.div {...HoverLift}>
-        <button
-          className={`${btnBase} text-white transition-all duration-200 ${className}`}
-          style={{ backgroundColor: T.accent, boxShadow: "0 10px 26px -12px rgba(255,0,0,.8)" }}
-        >{children}</button>
+        <button className={`${btnBase} text-white transition-all duration-200 ${className}`} style={{ backgroundColor: T.accent, boxShadow: "0 10px 26px -12px rgba(255,0,0,.8)" }}>{children}</button>
       </motion.div>
     </Magnetic>
   </a>
@@ -149,40 +135,91 @@ const OutlineButton = ({ href, className = "", children }) => (
     </Magnetic>
   </a>
 )
-const GhostLink = ({ href, children }) => (
-  <a href={href} className="inline-flex items-center px-0 h-8" style={{ color: T.accent }}>{children}</a>
+const GhostLink = ({ href, children }) => (<a href={href} className="inline-flex items-center px-0 h-8" style={{ color: T.accent }}>{children}</a>)
+
+/* ============ Navbar (mobile hamburger; bold logo text) ============ */
+const NavLink = ({ href, label, onClick }) => (
+  <a href={href} onClick={onClick} className="hover:text-white text-zinc-300 transition-colors" style={{ transition: "color .15s ease" }}>{label}</a>
 )
 
-/* ================= Navbar (logo from /public/logo.png) ================= */
-const NavLink = ({ href, label }) => (
-  <a href={href} className="hover:text-white text-zinc-300 transition-colors" style={{ transition: "color .15s ease" }}>{label}</a>
-)
-const Logo = () => (
-  <a href="#/home" className="flex items-center gap-2">
+const Logo = ({ onClick }) => (
+  <a href="#/home" onClick={onClick} className="flex items-center gap-2">
     <img src="/logo.png" alt="Heplink" className="h-7 w-auto" onError={(e)=>{e.currentTarget.style.display='none'}} />
-    <span className="leading-none text-white font-display">Heplink</span>
+    <span className="leading-none text-white font-bold">Heplink</span>
   </a>
 )
-const Navbar = () => (
-  <div className={`sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-black/60 bg-black/80 border-b ${T.border}`}>
-    <Section className="py-4 flex items-center justify-between">
-      <Logo />
-      <nav className="hidden md:flex items-center gap-7 text-[15px]">
-        <NavLink href="#/home" label="Home" />
-        <NavLink href="#/work" label="Work" />
-        <NavLink href="#/services" label="What we do" />
-        <NavLink href="#/insights" label="Insights" />
-        <NavLink href="#/careers" label="Careers" />
-        <NavLink href="#/contact" label="Contact" />
-      </nav>
-      <AccentButton href="#/contact" className="hidden sm:inline-flex">Let's talk</AccentButton>
-    </Section>
-  </div>
-)
 
-/* ================= Hero (client boxes removed; new copy) ================= */
+const Navbar = () => {
+  const [open, setOpen] = useState(false)
+  const close = () => setOpen(false)
+
+  return (
+    <>
+      <div className={`sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-black/60 bg-black/80 border-b ${T.border}`}>
+        <Section className="py-4 flex items-center justify-between">
+          <Logo onClick={close} />
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-7 text-[15px]">
+            <NavLink href="#/home" label="Home" />
+            <NavLink href="#/work" label="Work" />
+            <NavLink href="#/services" label="What we do" />
+            <NavLink href="#/insights" label="Insights" />
+            <NavLink href="#/careers" label="Careers" />
+            <NavLink href="#/contact" label="Contact" />
+          </nav>
+          <div className="hidden sm:block">
+            <AccentButton href="#/contact" className="hidden md:inline-flex">Let's talk</AccentButton>
+          </div>
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-zinc-700"
+            aria-label="Toggle menu" aria-expanded={open}
+            onClick={() => setOpen(v => !v)}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" fill="none" strokeWidth="2">
+              <path d={open ? "M6 6l12 12M18 6L6 18" : "M4 7h16M4 12h16M4 17h16"} />
+            </svg>
+          </button>
+        </Section>
+      </div>
+
+      {/* Mobile sheet */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="sheet"
+            className="fixed inset-0 z-50 bg-black/70"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={close}
+          >
+            <motion.nav
+              initial={{ y: -16, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -16, opacity: 0 }}
+              transition={{ duration: .25 }}
+              className="absolute top-0 left-0 right-0 bg-black border-b border-zinc-800 p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col gap-4 text-lg">
+                <Logo onClick={close} />
+                <NavLink href="#/home" label="Home" onClick={close} />
+                <NavLink href="#/work" label="Work" onClick={close} />
+                <NavLink href="#/services" label="What we do" onClick={close} />
+                <NavLink href="#/insights" label="Insights" onClick={close} />
+                <NavLink href="#/careers" label="Careers" onClick={close} />
+                <NavLink href="#/contact" label="Contact" onClick={close} />
+                <AccentButton href="#/contact">Let's talk</AccentButton>
+              </div>
+            </motion.nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+/* ============ Hero ============ */
 const Hero = () => {
-  // tries /hero-image.* and /heroImage.* in /public
   const heroUrl = useAssetUrl(["hero-image", "heroImage"], DEFAULT_PLACEHOLDER)
   const bgStyle = useMemo(() => ({
     backgroundImage: `url(${heroUrl})`,
@@ -210,22 +247,13 @@ const Hero = () => {
   )
 }
 
-/* ================= Our approach (3 tabs) ================= */
+/* ============ Our approach (mobile-safe buttons) ============ */
 const Approach = () => {
   const [tab, setTab] = useState("how")
   const copy = {
-    goal: {
-      title: "Our goal",
-      body: "Earn attention that drives growth. We blend brand + performance so social actually moves the numbers that matter."
-    },
-    how: {
-      title: "How we work",
-      body: "Small team, fast feedback, data driven, and useful monthly insights you’ll actually use (like Spotify Wrapped for your marketing)."
-    },
-    proof: {
-      title: "Proof",
-      body: "2M+ views each month, across multiple industries, and reporting that tells you what to do next. That’s the way we do it."
-    }
+    goal: { title: "Our goal", body: "Earn attention that drives growth. We blend brand + performance so social actually moves the numbers that matter." },
+    how:  { title: "How we work", body: "Small team, fast feedback, data driven, and useful monthly insights you’ll actually use (like Spotify Wrapped for your marketing)." },
+    proof:{ title: "Proof", body: "2M+ views each month, across multiple industries, and reporting that tells you what to do next. That’s the way we do it." }
   }
   const tabs = [
     { id: "goal", label: "Goal" },
@@ -234,14 +262,15 @@ const Approach = () => {
   ]
   return (
     <Section id="approach" className="py-16">
-      <div className="flex items-center justify-between gap-6">
+      <div className="flex items-center justify-between gap-4">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">Our approach</h2>
-        <div className="flex gap-2">
+        {/* Mobile-safe tab row */}
+        <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1">
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-3 h-9 rounded-lg border ${tab===t.id ? "border-red-500 text-white" : "border-zinc-700 text-zinc-300"} bg-zinc-900`}
+              className={`shrink-0 whitespace-nowrap px-3 h-9 rounded-lg border text-xs sm:text-sm ${tab===t.id ? 'border-red-500 text-white' : 'border-zinc-700 text-zinc-300'} bg-zinc-900`}
             >{t.label}</button>
           ))}
         </div>
@@ -254,21 +283,13 @@ const Approach = () => {
   )
 }
 
-/* ================= Inline icons for Services ================= */
-const IconTrend = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M3 17l6-6 4 4 7-7"/><path d="M21 10V4h-6"/></svg>
-)
-const IconSparkles = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/></svg>
-)
-const IconMegaphone = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M3 10v4a2 2 0 0 0 2 2h2l4 3V5L7 8H5a2 2 0 0 0-2 2z"/></svg>
-)
-const IconRocket = (props) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}><path d="M14 3l7 7-8 8-7-7z"/><path d="M5 19l3 3"/></svg>
-)
+/* ============ Service icons ============ */
+const IconTrend = (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M3 17l6-6 4 4 7-7"/><path d="M21 10V4h-6"/></svg>)
+const IconSparkles = (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/></svg>)
+const IconMegaphone = (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M3 10v4a2 2 0 0 0 2 2h2l4 3V5L7 8H5a2 2 0 0 0-2 2z"/></svg>)
+const IconRocket = (p) => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M14 3l7 7-8 8-7-7z"/><path d="M5 19l3 3"/></svg>)
 
-/* ================= Services ================= */
+/* ============ Services ============ */
 const services = [
   { title: "Strategy & Social", desc: "Audience, positioning, channel architecture, measurement frameworks.", icon: IconTrend },
   { title: "Creative & Content", desc: "Social-first ideas, production, creator collaborations, always-on.", icon: IconSparkles },
@@ -295,9 +316,9 @@ const Services = () => (
   </Section>
 )
 
-/* ================= Work ================= */
+/* ============ Work ============ */
 const workItems = [
-  { key: "durham", img: "durham-image", tag: "Campaign", title: "Durham x Hummel", blurb: "Amplifying club culture and kit pride with creator-led social and launch content." },
+  { key: "durham", img: "durham-image",   tag: "Campaign",       title: "Durham x Hummel", blurb: "Amplifying club culture and kit pride with creator-led social and launch content." },
   { key: "aspect", img: "aspect-bathrooms", tag: "Brand & Social", title: "Aspect Bathrooms", blurb: "Elevating a local brand with performance-driven social and sleek product storytelling." },
   { key: "onegovs", img: "onegovs-image", tag: "Strategy & Paid", title: "OneGovs", blurb: "Building awareness and trust for a public-sector platform through targeted creative + media." },
 ]
@@ -334,7 +355,7 @@ const Work = () => (
   </Section>
 )
 
-/* ================= Community / Insights / Careers / Contact / Footer ================= */
+/* ============ Community / Insights / Careers / Contact / Footer ============ */
 const Community = () => (
   <div id="community" className={`relative overflow-hidden border-y ${T.border}`}>
     <Section className="py-20">
@@ -363,18 +384,28 @@ const Community = () => (
   </div>
 )
 
+/* News images wired:
+   - 'dogbonfire.(png|webp)' for the bonfire post
+   - 'gst.(png|jpg|jpeg)' for the haulage post
+*/
 const posts = [
-  { title: "Raising awareness & helping dog owners in the run up to Bonfire Night", tag: "News" },
-  { title: "Making a regional haulage company stand out", tag: "News" },
-  { title: "Durham x Hummel: from kit launch to community hype", tag: "Insight" },
+  { title: "Raising awareness & helping dog owners in the run up to Bonfire Night", tag: "News",   img: "dogbonfire" },
+  { title: "Making a regional haulage company stand out",                           tag: "News",   img: "gst" },
+  { title: "Durham x Hummel: from kit launch to community hype",                   tag: "Insight", img: "durham-image" },
 ]
+const PostImage = ({ base, alt }) => {
+  const url = useAssetUrl(base || "__none__", DEFAULT_PLACEHOLDER)
+  return <img src={url} alt={alt} className="w-full h-full object-cover" loading="lazy" />
+}
 const Insights = () => (
   <Section id="insights" className="py-20">
     <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">News & insights</h3>
     <div className="mt-8 grid md:grid-cols-3 gap-6">
       {posts.map((p, i) => (
         <div key={i} className={`rounded-2xl overflow-hidden ${T.hairline} ${T.card} relative after:absolute after:inset-0 after:rounded-2xl after:pointer-events-none after:ring-1 after:ring-transparent hover:after:ring-red-500/30`}>
-          <div className="h-44 bg-gradient-to-br from-zinc-800 to-zinc-900" />
+          <div className="h-44 bg-zinc-900">
+            <PostImage base={p.img} alt={p.title} />
+          </div>
           <div className="p-5">
             <div className="text-[11px] uppercase tracking-[0.16em] text-zinc-400">{p.tag}</div>
             <div className="mt-1 text-[20px] leading-snug font-semibold text-white">{p.title}</div>
@@ -479,8 +510,8 @@ const Footer = () => (
   </footer>
 )
 
-/* ================= Pages / Router ================= */
-const HomePage = () => (<><Hero /><Approach /><Services /><Work /><Community /><Insights /></>)
+/* ============ Pages / Router (Approach moved below Services) ============ */
+const HomePage = () => (<><Hero /><Services /><Approach /><Work /><Community /><Insights /></>)
 const Page = ({ route }) => {
   if (route.startsWith("#/work")) return (<><Work /><Community /></>)
   if (route.startsWith("#/services")) return (<><Services /><Work /></>)
